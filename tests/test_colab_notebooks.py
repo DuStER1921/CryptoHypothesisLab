@@ -9,7 +9,8 @@ ROOT=Path(__file__).resolve().parents[1]
 class ColabNotebookTests(unittest.TestCase):
     def test_notebooks_are_public_safe_and_compile(self):
         for name in ('01_prepare_development.ipynb','02_discover_offline.ipynb','03_premove_offline.ipynb',
-                     '04_prepare_micro_development.ipynb','05_micro_warning_offline.ipynb'):
+                     '04_prepare_micro_development.ipynb','05_micro_warning_offline.ipynb',
+                     '06_premove_v3_offline.ipynb'):
             with self.subTest(name=name):
                 p=ROOT/'colab'/name
                 raw=p.read_bytes()
@@ -22,7 +23,7 @@ class ColabNotebookTests(unittest.TestCase):
                         compile(''.join(cell['source']),f'{name}:{i}','exec')
     def test_offline_notebook_never_requests_drive(self):
         for name in ('02_discover_offline.ipynb','03_premove_offline.ipynb',
-                     '05_micro_warning_offline.ipynb'):
+                     '05_micro_warning_offline.ipynb','06_premove_v3_offline.ipynb'):
             nb=json.loads((ROOT/'colab'/name).read_text())
             code='\n'.join(''.join(c['source']) for c in nb['cells'] if c['cell_type']=='code')
             self.assertNotIn('drive.mount(',code)
@@ -42,6 +43,17 @@ class ColabNotebookTests(unittest.TestCase):
         self.assertLess(a,b)
         self.assertIn('actual!=expected','\n'.join(code05))
         self.assertIn('files.download(str(result_path))','\n'.join(code05))
+
+    def test_v3_registers_plan_before_future_labels_and_has_private_output(self):
+        nb=json.loads((ROOT/'colab'/'06_premove_v3_offline.ipynb').read_text())
+        code=[''.join(c['source']) for c in nb['cells'] if c['cell_type']=='code']
+        ix_plan=next(i for i,c in enumerate(code) if 'plan=make_v3_plan(packet)' in c)
+        ix_run=next(i for i,c in enumerate(code) if 'report=run_v3(packet,plan)' in c)
+        self.assertLess(ix_plan,ix_run)
+        self.assertIn('actual!=expected','\n'.join(code))
+        self.assertIn('files.download(str(plan_path))','\n'.join(code))
+        self.assertIn('files.download(str(report_path))','\n'.join(code))
+        self.assertNotIn('drive.mount(', '\n'.join(code))
 
     def test_public_audit_rejects_saved_results(self):
         raw=(ROOT/'colab'/'02_discover_offline.ipynb').read_bytes()
