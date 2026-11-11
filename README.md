@@ -63,3 +63,9 @@ Read the [Quant Screen V1 contract](docs/QUANT_SCREEN_V1.md). No plan/report/mar
 ## Micro Pre-Move V2 — conditional owner pilot
 
 Optional high-resolution, still **Development-only** research: [Colab 04 prep](colab/04_prepare_micro_development.ipynb) explicitly approves one frozen C1+C2 month, preserves complete C1 OHLCV and **sparse 5/15/60-second executed C2 taker features** in a separately hashed private ZIP, and never updates the original source. Then disconnect the owner VM and use [Colab 05 offline](colab/05_micro_warning_offline.ipynb) to pre-register fixed early warnings and report **false alarms, missing-bin unknowns, missed ex-post reference episodes and 5s timelines** without Drive access. A new owner-run raw C2 pilot has **not** been executed by code delivery; C3 order-book data and executable HFT edge are not available in this ZIP. See [full runbook](docs/MICRO_PREMOVE_V2.md). No new OAuth app, servers or automatic source reads.
+
+### V3 — Pre-Move risk sets + matched controls (Development only)
+
+[`colab/06_premove_v3_offline.ipynb`](colab/06_premove_v3_offline.ipynb) analyzes an **already privately prepared V2 MICRO ZIP** in a **fresh no-Drive Colab runtime**. No second staging or source read is needed. It runs a fixed quiet-price risk set (completed 5s, last 60s C2 trade high/low <=8bps), as-of C1 context, seven C1/C2/fusion/placebo signal rules, 1:1 matched non-alert controls, and 28 full exploratory outcomes; reports **base rates and unmatched/null cases**. See [`docs/PREMOVE_V3_MATCHED_RESEARCH.md`](docs/PREMOVE_V3_MATCHED_RESEARCH.md).
+
+**Do not claim validated edge from this already inspected July 2024 Development month.** The reported first 5bps departure after the next full 5s close is a **proxy**, not the actual beginning of a move, measured actionable lead time or a fill. No protected splits are accessed.
