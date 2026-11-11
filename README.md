@@ -49,3 +49,9 @@ See [`docs/PHASE2_DATA_ADMISSION.md`](docs/PHASE2_DATA_ADMISSION.md) for safety 
 For a single Gmail without creating a Google Cloud OAuth client, use **[01 — Prepare Development](colab/01_prepare_development.ipynb)**, download the bounded SHA-verified feature ZIP, fully delete that runtime, and then open **[02 — Explore offline](colab/02_discover_offline.ipynb)** and upload the ZIP from your computer. The offline analyst does not mount Google Drive. Public notebooks are code-only with empty outputs; real frozen IDs, raw data and private reports are never in GitHub.
 
 **Read [Colab Airgap V1](docs/COLAB_AIRGAP_V1.md) before a real run.** It documents strict 2020–2024 bounds, private start evidence, scope of manual owner approval, the weaker Drive FUSE durability properties vs. the signed Phase 4 broker, and separate-VM constraints. No real source bytes are opened in CI or by this setup alone; the user must explicitly approve a selected Development pilot.
+
+## Phase 6: exploratory quant screening (Development only)
+
+The offline [Colab 02](colab/02_discover_offline.ipynb) now offers an optional fixed-grid **1,440-trial research screen** using an already verified single-month C1+C2 Development ZIP (no new Drive mount, raw market data or custom OAuth client). It downloads a complete plan **before** evaluation, then a private report covering **every trial**, both signs, cost-sensitivity scenarios and a 21-day / remaining-days chronological diagnostic. The selection test is a daily-block sign-flip maxT screen, **not independent statistical validation**; its assumptions may not hold in market time series. Never call the result HFT arbitrage or a profitable executable strategy.
+
+Read the [Quant Screen V1 contract](docs/QUANT_SCREEN_V1.md). No plan/report/market artifacts belong in public GitHub.
