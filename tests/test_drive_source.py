@@ -103,3 +103,14 @@ class TestDriveSource(unittest.TestCase):
                 with self.assertRaises(SourceReadError):
                     with source.open_pinned(p):pass
             self.assertEqual(list(cache.iterdir()),[])
+
+
+class TestUploaderScope(unittest.TestCase):
+    def test_only_explicit_granted_drive_file_is_accepted(self):
+        from hypolab.drive_backend import ScopedSingleGmailDriveWriterPort,DriveBoundaryError
+        service=FakeService()
+        obj=ScopedSingleGmailDriveWriterPort(service,FakeCredentials([WRITE_SCOPE]))
+        self.assertIs(obj.service,service)
+        for scopes in ([READ_SCOPE],[WRITE_SCOPE,READ_SCOPE],None,[]):
+            with self.subTest(granted=scopes),self.assertRaises(DriveBoundaryError):
+                ScopedSingleGmailDriveWriterPort(service,FakeCredentials(scopes))

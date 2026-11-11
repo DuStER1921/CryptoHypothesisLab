@@ -161,3 +161,18 @@ class GoogleDriveV3ReadPort:
 
     def download(self, file_id: str) -> bytes:
         return GoogleDriveV3Port(self.service).download(file_id)
+
+
+class ScopedSingleGmailDriveWriterPort(GoogleDriveV3Port):
+    """Output-only Drive v3 port; fail if effective granted scopes are unknown.
+
+    OAuth `drive.file` is per-app file access. Access to a previously-created
+    folder must be explicitly tested; this check does not grant it.
+    """
+    def __init__(self, service, credentials):
+        from .single_account import WRITE_SCOPE
+        granted = getattr(credentials, 'granted_scopes', None)
+        if (not isinstance(granted, (list, tuple, set))
+                or set(granted) != {WRITE_SCOPE}):
+            raise DriveBoundaryError('verified drive.file-only uploader token required')
+        super().__init__(service)

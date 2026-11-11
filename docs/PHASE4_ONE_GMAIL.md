@@ -45,3 +45,8 @@ consumer sees bytes. This uses temporary disk for download plus staging, so
 budget at least two copies of the largest partition. Source bytes are deleted
 from **only the adapter's temporary scratch** upon context exit; never from the
 original Drive. Actual owner OAuth and large-C2 tests remain pending.
+
+`ScopedSingleGmailDriveWriterPort` enforces a verified `drive.file`-only
+OAuth granted-scope declaration before enabling the existing create-only
+uploader. An unknown/elevated output token fails closed. No OAuth login
+client, token or output-folder Picker grant is embedded in the public repo.
