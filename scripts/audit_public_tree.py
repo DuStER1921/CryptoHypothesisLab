@@ -54,7 +54,7 @@ def inspect_file(relpath: str, contents: bytes) -> tuple[str, ...]:
                                or cell.get('execution_count') is not None
                                for cell in cells)):
                     flags.append('notebook outputs/attachments or unsupported cells')
-                if path.name == '02_discover_offline.ipynb':
+                if path.name in ('02_discover_offline.ipynb', '03_premove_offline.ipynb'):
                     code = '\n'.join(''.join(cell.get('source', []))
                                      for cell in cells if cell.get('cell_type') == 'code')
                     if ('drive.mount(' in code or 'authenticate_user(' in code
