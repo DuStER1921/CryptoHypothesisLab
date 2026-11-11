@@ -182,7 +182,10 @@ def _flow_features(rows,i):
     """No price-outcome filter. Completed current bucket + exactly 12 prior ones."""
     if i<12:return None
     b=rows[i];t=int(b['start_ms']);hist=rows[i-12:i]
-    if hist[0]['start_ms']!=t-60000 or hist[0]['start_ms']//86400000!=t//86400000:
+    # Bundle CSV reader intentionally retains field values as strings.
+    # Numeric fixture rows must follow exactly the same timestamp semantics.
+    history_start=int(hist[0]['start_ms'])
+    if history_start!=t-60000 or history_start//86400000!=t//86400000:
         return None
     if any(int(r['start_ms'])!=t-60000+5000*k for k,r in enumerate(hist)):
         return None
