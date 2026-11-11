@@ -54,18 +54,25 @@ class OwnerExposureJournal:
         if os.name == 'posix' and (self.path.parent.stat().st_mode & 0o077 or
                                    self.path.stat().st_mode & 0o077):
             raise OwnerJournalError('owner journal must be private mode 0700/0600')
-        self._db = sqlite3.connect(self.path,timeout=0.0,isolation_level=None)
-        self._db.execute('PRAGMA synchronous=FULL')
-        self._db.execute('PRAGMA journal_mode=DELETE')
-        self._db.execute('PRAGMA foreign_keys=ON')
-        self._db.execute('PRAGMA busy_timeout=0')
-        # Never use this for a new database silently. Explicit bootstrap required.
+        self._db = sqlite3.connect(self.path,timeout=5.0,isolation_level=None)
         try:
-            version=self._db.execute('SELECT value FROM meta WHERE key=?',('schema',)).fetchone()
+            self._db.execute('PRAGMA synchronous=FULL')
+            # Journal mode is set at bootstrap; inspect without racing writers.
+            mode=self._db.execute('PRAGMA journal_mode').fetchone()
+            if not mode or mode[0].lower() != 'delete':
+                raise OwnerJournalError('unsupported SQLite journal mode')
+            self._db.execute('PRAGMA foreign_keys=ON')
+            self._db.execute('PRAGMA busy_timeout=5000')
+            try:
+                version=self._db.execute(
+                    'SELECT value FROM meta WHERE key=?',('schema',)).fetchone()
+            except sqlite3.OperationalError as exc:
+                raise OwnerJournalError('owner journal not initialized') from exc
             if version != ('2',):
                 raise OwnerJournalError('owner journal schema not initialized')
-        except sqlite3.OperationalError as e:
-            raise OwnerJournalError('owner journal not initialized') from e
+        except BaseException:
+            self._db.close()
+            raise
 
     @classmethod
     def create_new(cls, db_path: Path):
