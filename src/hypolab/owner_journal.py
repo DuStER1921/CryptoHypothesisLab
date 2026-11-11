@@ -54,18 +54,25 @@ class OwnerExposureJournal:
         if os.name == 'posix' and (self.path.parent.stat().st_mode & 0o077 or
                                    self.path.stat().st_mode & 0o077):
             raise OwnerJournalError('owner journal must be private mode 0700/0600')
-        self._db = sqlite3.connect(self.path,timeout=0.0,isolation_level=None)
-        self._db.execute('PRAGMA synchronous=FULL')
-        self._db.execute('PRAGMA journal_mode=DELETE')
-        self._db.execute('PRAGMA foreign_keys=ON')
-        self._db.execute('PRAGMA busy_timeout=0')
-        # Never use this for a new database silently. Explicit bootstrap required.
+        self._db = sqlite3.connect(self.path,timeout=5.0,isolation_level=None)
         try:
-            version=self._db.execute('SELECT value FROM meta WHERE key=?',('schema',)).fetchone()
-            if version != ('1',):
+            self._db.execute('PRAGMA synchronous=FULL')
+            # Journal mode is set at bootstrap; inspect without racing writers.
+            mode=self._db.execute('PRAGMA journal_mode').fetchone()
+            if not mode or mode[0].lower() != 'delete':
+                raise OwnerJournalError('unsupported SQLite journal mode')
+            self._db.execute('PRAGMA foreign_keys=ON')
+            self._db.execute('PRAGMA busy_timeout=5000')
+            try:
+                version=self._db.execute(
+                    'SELECT value FROM meta WHERE key=?',('schema',)).fetchone()
+            except sqlite3.OperationalError as exc:
+                raise OwnerJournalError('owner journal not initialized') from exc
+            if version != ('2',):
                 raise OwnerJournalError('owner journal schema not initialized')
-        except sqlite3.OperationalError as e:
-            raise OwnerJournalError('owner journal not initialized') from e
+        except BaseException:
+            self._db.close()
+            raise
 
     @classmethod
     def create_new(cls, db_path: Path):
@@ -74,13 +81,18 @@ class OwnerExposureJournal:
             raise OwnerJournalError('create-only journal needs fresh private local path')
         if os.name == 'posix' and path.parent.stat().st_mode & 0o077:
             raise OwnerJournalError('owner directory must be mode 0700')
+        # Open with restrictive permissions from the first instant; sqlite3's
+        # default file creation could otherwise briefly expose an owner DB.
+        fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|
+                   getattr(os,'O_NOFOLLOW',0),0o600)
+        os.close(fd)
         con = sqlite3.connect(path,isolation_level=None)
         try:
             con.executescript('''
               PRAGMA journal_mode=DELETE;
               PRAGMA synchronous=FULL;
               CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-              INSERT INTO meta VALUES ('schema','1');
+              INSERT INTO meta VALUES ('schema','2');
               CREATE TABLE events (
                 seq INTEGER PRIMARY KEY CHECK(seq > 0),
                 attempt_id TEXT UNIQUE NOT NULL,
@@ -92,6 +104,11 @@ class OwnerExposureJournal:
                 state TEXT NOT NULL CHECK(state IN ('PENDING','ACKED')),
                 drive_id TEXT UNIQUE,
                 UNIQUE(grant_id,partition_sha)
+              );
+              CREATE TABLE read_consumptions (
+                attempt_id TEXT PRIMARY KEY REFERENCES events(attempt_id),
+                event_sha TEXT UNIQUE NOT NULL,
+                consumed_at_utc TEXT NOT NULL
               );
             ''')
         finally:
@@ -154,3 +171,46 @@ class OwnerExposureJournal:
     def status(self,attempt_id: str):
         return self._db.execute('SELECT state,drive_id,event_sha FROM events WHERE attempt_id=?',
                                 (attempt_id,)).fetchone()
+
+    def consume_acked_once(self, *, attempt_id: str, drive_id: str,
+                           event_sha256: str, consumed_at_utc: str) -> None:
+        """Durably consume one ACK before opening source streams. No retry.
+
+        Operator must protect the DB against rollback to an older backup.
+        """
+        if (type(attempt_id) is not str or ID.fullmatch(attempt_id) is None
+                or type(drive_id) is not str or not drive_id
+                or type(event_sha256) is not str or SHA.fullmatch(event_sha256) is None):
+            raise OwnerJournalError('invalid source consumption identity')
+        from datetime import datetime, timezone
+        if (type(consumed_at_utc) is not str or
+                re.fullmatch(r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ',
+                             consumed_at_utc) is None):
+            raise OwnerJournalError('invalid UTC consumption timestamp')
+        try:
+            stamp=datetime.fromisoformat(consumed_at_utc.replace('Z','+00:00'))
+            if stamp.utcoffset() != timezone.utc.utcoffset(stamp):
+                raise ValueError('not UTC')
+        except ValueError as exc:
+            raise OwnerJournalError('invalid consumed timestamp') from exc
+        try:
+            self._db.execute('BEGIN IMMEDIATE')
+            row=self._db.execute('''SELECT state,drive_id,event_sha
+                       FROM events WHERE attempt_id=?''',(attempt_id,)).fetchone()
+            if row != ('ACKED',drive_id,event_sha256):
+                raise OwnerJournalError('source read lacks matching durable ACK')
+            self._db.execute('''INSERT INTO read_consumptions
+                (attempt_id,event_sha,consumed_at_utc) VALUES (?,?,?)''',
+                (attempt_id,event_sha256,consumed_at_utc))
+            self._db.execute('COMMIT')
+        except BaseException as exc:
+            if self._db.in_transaction:
+                self._db.execute('ROLLBACK')
+            if isinstance(exc,sqlite3.IntegrityError):
+                raise OwnerJournalError('READ_STARTED already consumed') from exc
+            raise
+
+    def consumed(self, attempt_id: str) -> bool:
+        row=self._db.execute('SELECT 1 FROM read_consumptions WHERE attempt_id=?',
+                             (attempt_id,)).fetchone()
+        return row == (1,)
