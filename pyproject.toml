@@ -12,6 +12,7 @@ dependencies = []
 [project.optional-dependencies]
 parquet = ["pyarrow==26.0.0"]
 security = ["cryptography>=45,<47"]
+drive = ["google-api-python-client>=2.140,<3"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
