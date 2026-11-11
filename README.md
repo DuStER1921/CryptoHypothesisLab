@@ -32,3 +32,9 @@ python scripts/audit_public_tree.py
 GitHub Actions runs the tests on Python 3.11 and 3.13, with no credentials and no market data. Windows imports the package but skips local POSIX journal tests; that is not a Windows acceptance result.
 
 Read the [Research Rules](docs/RESEARCH_RULES_V1.md) and the [Security Review](docs/SECURITY_REVIEW_V1.md) before extending this repository. **Do not merge in production access**, run research against real frozen data, or present synthetic results as market edge until the missing independent grants, data-integrity adapter, durable journal and statistical inference have been accepted.
+
+## Phase 2 data admission (real market rows still blocked)
+
+The project now includes a separately reviewed `FrozenIndex` (eight-file freeze proof), streamed read-only private staging, exact-schema bounded Parquet window loader, signed Development grant verifier, C1+C2 minute feature builder and private create-only local result writer. **None of these objects alone authorize real data reads.** `GovernedRealReader` always denies until independently anchored, durable owner-controlled read-start authority and isolated credentials are implemented and accepted. Validation and OOS stay sealed.
+
+See [`docs/PHASE2_DATA_ADMISSION.md`](docs/PHASE2_DATA_ADMISSION.md) for safety gates and remaining work. No original private files or observed market rows were committed.
