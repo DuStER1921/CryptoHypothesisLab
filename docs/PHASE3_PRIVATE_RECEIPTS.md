@@ -1,5 +1,7 @@
 # Phase 3 — independent owner receipts + private Drive publication
 
+**For a single Gmail account, the original multiple-account requirement below is superseded by [Phase 4](PHASE4_ONE_GMAIL.md).** Separate processes, OAuth tokens and a credential-free analyst remain required; one Gmail cannot provide account-level ACL isolation of Validation/OOS. This historical Phase 3 document otherwise describes the earlier model.
+
 **Status:** implementation and synthetic tests. Real market rows remain **NOT_AUTHORIZED**. No change to CryptoResearchLab or frozen Universe.
 
 ## Three separate identities/processes (mandatory for real use)
