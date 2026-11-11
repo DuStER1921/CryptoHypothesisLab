@@ -9,5 +9,9 @@ description = "Synthetic-only safety foundation for event-based quantitative res
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+parquet = ["pyarrow==26.0.0"]
+security = ["cryptography>=45,<47"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
