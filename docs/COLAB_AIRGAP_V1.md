@@ -26,3 +26,33 @@
 - `01` can validate frozen metadata; processing one real month requires **owner typing an exact approval** in Colab and accepting the documented manual-pilot risk profile.
 - Real Colab runtime, Drive FUSE, private `READ_STARTED` write/readback, source I/O, Python/PyArrow version and analyst VM isolation **still require an owner-run acceptance**. If these checks fail, the pilot is NO_GO and no result should be treated as evidence.
 - Upstream `GovernedRealReader` remains default-deny; Colab manual owner-pilot is a separate, explicitly lower-assurance pathway, **not a silent grant bypass**.
+
+## July 2024 C1 V1 manifest compatibility (2026-11-11)
+
+The original C1 `klines` 1m `manifest_version=1` **does not contain** a
+`generation` key. Phase 5 initially rejected this valid source in
+`ReadOnlyStager._check_manifest`; frozen preflight succeeded, but the read-only
+stager raised `StageError: manifest disagrees with frozen ledger` before C2
+was staged. C2 `aggTrades` July 2024 uses manifest V3 and **does contain**
+`generation`. The verifier now respects these different source contracts:
+
+- C1 V1 requires provider, market, symbol, logical dataset identity, canonical
+  name, interval/schema version, source hash, and full pinned manifest SHA-256.
+  Its generation is bound by the frozen partition ledger and exact
+  `generations/<SHA>/...` source path, not an invented JSON member.
+- C2 retains the strict explicit generation comparison (and all previous
+  SHA-256, period, validation, and readback checks).
+- Local read-only acceptance against the actual July 2024 C1/C2 manifest
+  bytes passed with matching manifest SHA-256. This does **not** constitute
+  a real C2 Parquet processing or Colab-runtime acceptance.
+
+**Safe retry after this exact error:** the first attempt has already written
+`COLAB_PREP_STARTED` to the separate private research-events folder; it is a
+real historical attempt, **do not delete or edit it**. In Colab choose
+**Runtime > Disconnect and delete runtime**, reopen notebook 01 from the
+updated `main` branch, repeat frozen preflight, and explicitly authorize the
+same Development month. The notebook generates a **new** random attempt ID.
+Do not rerun cell 3 within the previous runtime: its private scratch folders
+were intentionally created once, and the old checkout would still have the bug.
+If the new attempt fails, retain its event and the traceback; do not silently
+repeat or copy original source files.

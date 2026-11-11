@@ -84,11 +84,23 @@ class ReadOnlyStager:
         except (ValueError,UnicodeDecodeError) as exc:
             raise StageError("invalid source manifest") from exc
         if (type(v) is not dict or v.get('datatype') != identity.family or
-                v.get('symbol') != 'BTCUSDT' or v.get('market') != 'usdm' or
+                v.get('provider') != 'binance' or v.get('symbol') != 'BTCUSDT' or
+                v.get('market') != 'usdm' or
+                v.get('logical_dataset_id') != identity.logical_dataset_id or
+                v.get('canonical_name') != 'data.parquet' or
                 v.get('canonical_sha256') != identity.canonical_sha256 or
-                v.get('source_sha256') != identity.source_sha256 or
-                v.get('generation') != identity.generation):
+                v.get('source_sha256') != identity.source_sha256):
             raise StageError("manifest disagrees with frozen ledger")
+        # The original C1 1m V1 manifest has NO `generation` member.
+        # Generation is pinned by the frozen partition ledger, the exact
+        # manifest SHA-256 (verified before this call), and the generation
+        # directory chosen by MountedFrozenSource. Do not invent a field.
+        if identity.family == 'klines' and v.get('manifest_version') == 1:
+            if ('generation' in v or v.get('interval') != '1m' or
+                    v.get('schema_version') != 'binance-usdm-klines-1m-v1'):
+                raise StageError("unexpected C1 V1 source manifest contract")
+        elif v.get('generation') != identity.generation:
+            raise StageError("manifest generation disagrees with frozen ledger")
         if identity.family == 'bookDepth':
             period=f"{v.get('year'):04d}-{v.get('month'):02d}-{v.get('day'):02d}" if all(type(v.get(k)) is int for k in ('year','month','day')) else ''
         else:
