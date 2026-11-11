@@ -97,9 +97,23 @@ class OwnerReceiptAuthority:
         self.writer=writer
         self.signer=private_signer
 
-    def issue(self, permit: DevelopmentPermit, *, attempt_id: str,
-              now: datetime) -> SignedReadAck:
-        """Trusted owner-only method; the permit must come from signed-grant verification."""
+    def issue(self, *, frozen, grant_bytes: bytes, grant_signature: bytes,
+              grant_public_key: bytes, pinned_grant_key_sha256: str,
+              family: str, period: str, attempt_id: str, now: datetime) -> SignedReadAck:
+        """Public owner entry point: ALWAYS verify the real signed Development grant.
+
+        Calling this method cannot authorize arbitrary user-created permit objects.
+        The signing key and this authority must never run inside the analyst process.
+        """
+        permit = permit_from_signed_development_grant(
+            frozen=frozen,grant_bytes=grant_bytes,grant_signature=grant_signature,
+            grant_public_key=grant_public_key,pinned_grant_key_sha256=pinned_grant_key_sha256,
+            family=family,period=period,now=now)
+        return self._issue_verified_permit(permit,attempt_id=attempt_id,now=now)
+
+    def _issue_verified_permit(self, permit: DevelopmentPermit, *, attempt_id: str,
+                               now: datetime) -> SignedReadAck:
+        """Owner-internal helper; used directly only with fabricated test permits."""
         permit.check(now)
         if type(attempt_id) is not str or not re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.:-]{0,49}',attempt_id):
             raise ReceiptError('invalid attempt ID')
