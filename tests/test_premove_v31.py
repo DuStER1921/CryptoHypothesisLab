@@ -53,6 +53,13 @@ class V31PureTests(unittest.TestCase):
         self.assertIsNotNone(v._flow_features(rows,12))
         self.assertAlmostEqual(v._flow_features(rows,12)['rel_quote'],1.)
 
+    def test_flow_feature_accepts_actual_csv_string_fields(self):
+        # inspect_micro_bundle returns strings from csv.reader, unlike the
+        # integer-valued synthetic fixtures used by earlier V3.1 tests.
+        rows=[{key:str(value) for key,value in row(i).items()} for i in range(14)]
+        self.assertAlmostEqual(v._flow_features(rows,12)['rel_quote'],1.)
+        self.assertEqual(len([x for x in v._range_60s(rows) if x is not None]),3)
+
     def test_flow_feature_missing_history_is_unknown(self):
         rows=[row(i) for i in range(14)]
         rows[5]['start_ms']+=1000
@@ -135,13 +142,22 @@ class V31IntegrationTests(unittest.TestCase):
                 rows[i]['executed_quote_notional']=22000.
                 rows[i]['aggregate_rows']=90
                 rows[i]['taker_imbalance']=.9
+        # Reproduce the literal string-valued schema produced by the MICRO
+        # bundle CSV parser, rather than relying on numeric fixture values.
+        rows=[{key:str(value) for key,value in item.items()} for item in rows]
+        source_c1=[{key:str(value) for key,value in item.items()} for item in c1_rows(60)]
         meta={'month':'2024-07','assumed_latency_ms':1500,
               'counts':{'c1_1m':60,'c2_5s':720,'c2_15s':240,'c2_60s':60}}
         with patch.object(v,'make_v31_plan',return_value=b'plan'),\
-             patch.object(v,'inspect_micro_bundle',return_value=(meta,c1_rows(60),rows)),\
+             patch.object(v,'inspect_micro_bundle',return_value=(meta,source_c1,rows)),\
              patch.object(v,'_sha',return_value='z'*64):
             report=v.run_v31(Path('/fake.zip'),b'plan')
         self.assertEqual(report['schema'],v.SCHEMA)
+        # A non-empty, well-formed 5s feed must not silently produce 0 risk
+        # decisions because of parser type mismatches.
+        self.assertGreater(report['risk_sensitivity']['all5_no_quiet']['eligible_risk_decisions'],0)
+        self.assertGreater(report['risk_sensitivity']['all5_12bps']['eligible_risk_decisions'],0)
+        self.assertGreater(report['risk_sensitivity']['all5_no_quiet']['raw_signal_counts']['c2_flow_surge'],0)
         self.assertEqual(len(report['trials']),28)
         self.assertEqual(report['reference']['count'],1)
         self.assertEqual(len(report['reference']['all_references']),1)
