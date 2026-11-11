@@ -11,7 +11,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 512 * 1024
-ALLOWED_EXTENSIONS = {'.py', '.md', '.toml', '.yml', '.yaml', '.txt'}
+ALLOWED_EXTENSIONS = {'.py', '.md', '.toml', '.yml', '.yaml', '.txt', '.ipynb'}
 DANGEROUS_NAMES = {'.env', '.env.local', '.env.production', 'credentials.json',
                    'service-account.json', 'token.json'}
 BLOCKED_SEGMENTS = {'data', 'datasets', 'outputs', 'results', 'artifacts',
@@ -39,6 +39,29 @@ def inspect_file(relpath: str, contents: bytes) -> tuple[str, ...]:
         flags.append('oversized source file')
     if b'\x00' in contents:
         flags.append('binary content')
+    if path.suffix.lower() == '.ipynb':
+        if len(path.parts) != 2 or path.parts[0] != 'colab':
+            flags.append('notebook outside approved colab folder')
+        else:
+            try:
+                import json
+                nb = json.loads(contents)
+                cells = nb['cells']
+                if (nb.get('nbformat') != 4 or type(cells) is not list
+                        or any(cell.get('cell_type') not in ('code', 'markdown')
+                               or cell.get('attachments')
+                               or cell.get('outputs', [])
+                               or cell.get('execution_count') is not None
+                               for cell in cells)):
+                    flags.append('notebook outputs/attachments or unsupported cells')
+                if path.name == '02_discover_offline.ipynb':
+                    code = '\n'.join(''.join(cell.get('source', []))
+                                     for cell in cells if cell.get('cell_type') == 'code')
+                    if ('drive.mount(' in code or 'authenticate_user(' in code
+                            or 'GoogleDrivePinnedSource(' in code):
+                        flags.append('research notebook attempts source/Drive access')
+            except (ValueError, KeyError, TypeError, UnicodeDecodeError):
+                flags.append('invalid notebook JSON')
     text = contents.decode('utf-8', errors='replace')
     if any(pattern.search(text) for pattern in SENSITIVE_PATTERNS):
         flags.append('potential secret or private Drive URL')
