@@ -32,7 +32,7 @@ class V3Causality(unittest.TestCase):
         self.assertFalse(_quiet_range(rows,12))
         rows[4]['max_trade_price']='100'
         self.assertTrue(_quiet_range(rows,12))
-        rows[1]['start_ms']=str(BASE+12345)
+        rows[4]['start_ms']=str(BASE+12345)
         self.assertFalse(_quiet_range(rows,12))
 
     def test_future_only_from_next_completed_close(self):

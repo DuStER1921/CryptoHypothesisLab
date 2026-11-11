@@ -134,9 +134,9 @@ def _raw_signals(f,bar,asia_sign,stale):
 
 def _quiet_range(rows,i):
     """Full inclusive 60s past window, not just first-to-last displacement."""
-    if i<12:return False
+    if i<11:return False
     t=int(rows[i]['start_ms']);lows=[];highs=[]
-    for k in range(i-12,i+1):
+    for k in range(i-11,i+1):
         b=rows[k]
         if int(b['start_ms']) != t-(i-k)*5000:return False
         lows.append(float(b['min_trade_price']))
