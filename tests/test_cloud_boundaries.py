@@ -1,4 +1,4 @@
-import copy
+import importlib.util
 from datetime import datetime, timezone, timedelta
 import hashlib
 import json
@@ -127,12 +127,12 @@ class TestOwner(unittest.TestCase):
             j,key,pk,f,w,auth=self.mk(d)
             now=datetime(2026,11,11,10,0,tzinfo=timezone.utc)
             p=permit(now)
-            ack=auth.issue(p,attempt_id='attempt-1',now=now)
+            ack=auth._issue_verified_permit(p,attempt_id='attempt-1',now=now)
             self.assertEqual(j.status('attempt-1')[0],'ACKED')
             proof=verify_read_ack(ack=ack,permit=p,pinned_owner_public_key=pk,
                   pinned_public_sha256=hashlib.sha256(pk).hexdigest(),reader=reader(f),now=now)
             self.assertEqual(proof['status'],'ACK_VERIFIED_DEV_ONLY')
-            with self.assertRaises(OwnerJournalError):auth.issue(p,attempt_id='attempt-2',now=now)
+            with self.assertRaises(OwnerJournalError):auth._issue_verified_permit(p,attempt_id='attempt-2',now=now)
             j.close()
 
     def test_uncertain_drive_upload_consumes_attempt(self):
@@ -140,10 +140,10 @@ class TestOwner(unittest.TestCase):
             j,key,pk,f,w,auth=self.mk(d)
             now=datetime(2026,11,11,10,0,tzinfo=timezone.utc);p=permit(now)
             f.fail_after_create=True
-            with self.assertRaises(ConnectionError):auth.issue(p,attempt_id='attempt-1',now=now)
+            with self.assertRaises(ConnectionError):auth._issue_verified_permit(p,attempt_id='attempt-1',now=now)
             self.assertEqual(j.status('attempt-1')[0],'PENDING')
             f.fail_after_create=False
-            with self.assertRaises(OwnerJournalError):auth.issue(p,attempt_id='attempt-2',now=now)
+            with self.assertRaises(OwnerJournalError):auth._issue_verified_permit(p,attempt_id='attempt-2',now=now)
             self.assertEqual(f.seq,1)
             j.close()
 
@@ -151,7 +151,7 @@ class TestOwner(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             j,key,pk,f,w,auth=self.mk(d)
             now=datetime(2026,11,11,10,0,tzinfo=timezone.utc);p=permit(now)
-            ack=auth.issue(p,attempt_id='attempt-1',now=now)
+            ack=auth._issue_verified_permit(p,attempt_id='attempt-1',now=now)
             fake=SignedReadAck(ack.body,b'0'*64)
             with self.assertRaises(ReceiptError):verify_read_ack(ack=fake,permit=p,
                 pinned_owner_public_key=pk,pinned_public_sha256=hashlib.sha256(pk).hexdigest(),reader=reader(f),now=now)
@@ -166,7 +166,7 @@ class TestOwner(unittest.TestCase):
             now=datetime(2026,11,11,10,0,tzinfo=timezone.utc)
             p=permit(now)
             wrong=DevelopmentPermit(**{**vars(p),'window_end':datetime(2025,2,1,tzinfo=timezone.utc)})
-            with self.assertRaises(ReceiptError):auth.issue(wrong,attempt_id='bad',now=now)
+            with self.assertRaises(ReceiptError):auth._issue_verified_permit(wrong,attempt_id='bad',now=now)
             self.assertEqual(f.seq,0)
             j.close()
 
@@ -174,7 +174,7 @@ class TestOwner(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             j,key,pk,f,w,auth=self.mk(d)
             now=datetime(2026,11,11,10,0,tzinfo=timezone.utc)
-            auth.issue(permit(now),attempt_id='stable',now=now)
+            auth._issue_verified_permit(permit(now),attempt_id='stable',now=now)
             path=j.path;j.close()
             again=OwnerExposureJournal(path)
             self.assertEqual(again.status('stable')[0],'ACKED')
@@ -184,10 +184,10 @@ class TestOwner(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             j,key,pk,f,w,auth=self.mk(d)
             now=datetime(2026,11,11,10,0,tzinfo=timezone.utc)
-            first=auth.issue(permit(now),attempt_id='first',now=now)
+            first=auth._issue_verified_permit(permit(now),attempt_id='first',now=now)
             new=DevelopmentPermit(**{**vars(permit(now)),'grant_id':'g2',
                                      'canonical_sha256':'e'*64})
-            second=auth.issue(new,attempt_id='second',now=now)
+            second=auth._issue_verified_permit(new,attempt_id='second',now=now)
             raw=json.loads(second.body)
             self.assertEqual(raw['seq'],2)
             self.assertEqual(raw['prev_head'],j.status('first')[2])
@@ -205,13 +205,27 @@ class TestOwner(unittest.TestCase):
             j,key,pk,f,w,auth=self.mk(d)
             now=datetime(2026,11,11,10,0,tzinfo=timezone.utc)
             p=permit(now)
-            ack=auth.issue(p,attempt_id='one',now=now)
+            ack=auth._issue_verified_permit(p,attempt_id='one',now=now)
             with self.assertRaises(ReceiptError):verify_read_ack(ack=ack,permit=p,
                 pinned_owner_public_key=pk,pinned_public_sha256='f'*64,
                 reader=reader(f),now=now)
             with self.assertRaises(ReceiptError):verify_read_ack(ack=ack,permit=p,
                 pinned_owner_public_key=pk,pinned_public_sha256=hashlib.sha256(pk).hexdigest(),
                 reader=reader(f),now=now+timedelta(days=2))
+            j.close()
+
+    @unittest.skipUnless(importlib.util.find_spec('hypolab.admission') is not None,
+                         'full package signed-grant verifier not in standalone staging')
+    def test_public_authority_rejects_unsigned_grant_before_reservation(self):
+        with tempfile.TemporaryDirectory() as d:
+            j,key,pk,f,w,auth=self.mk(d)
+            now=datetime(2026,11,11,10,0,tzinfo=timezone.utc)
+            with self.assertRaises(PermissionError):
+                auth.issue(frozen=None,grant_bytes=b'{}',grant_signature=b'\0'*64,
+                    grant_public_key=pk,pinned_grant_key_sha256=hashlib.sha256(pk).hexdigest(),
+                    family='aggTrades',period='2024-07',attempt_id='bad',now=now)
+            self.assertEqual(j.status('bad'),None)
+            self.assertEqual(f.seq,0)
             j.close()
 
     def test_invalid_owner_journal_path(self):
