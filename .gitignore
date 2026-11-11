@@ -1,0 +1,71 @@
+# Python build, bytecode, and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local environments and IDE settings
+.venv/
+venv/
+env/
+.python-version
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Credentials and private configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*token*.json
+*service-account*.json
+secrets/
+.gdrive/
+.config/gcloud/
+
+# Never commit source market data or derived research data
+data/
+datasets/
+downloads/
+cache/
+.cache/
+*.parquet
+*.feather
+*.arrow
+*.csv
+*.jsonl
+*.ndjson
+*.duckdb
+*.sqlite
+*.sqlite3
+*.db
+*.zip
+*.gz
+*.tgz
+
+# Generated research artifacts and local outputs
+outputs/
+results/
+artifacts/
+reports/generated/
+*.log
+tmp/
+temp/
+
+# Jupyter / Colab temporary files (not .ipynb notebooks)
+.ipynb_checkpoints/
