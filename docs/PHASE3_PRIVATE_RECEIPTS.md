@@ -12,7 +12,7 @@ Owner identity and signer separation is a process/credential trust boundary, not
 
 ## Durable owner READ_STARTED protocol
 
-- Owner uses `permit_from_signed_development_grant` to verify signed authorization against frozen partitions, Development role and expiration; denies all Validation/OOS periods.
+- Owner invokes `OwnerReceiptAuthority.issue` (which internally calls `permit_from_signed_development_grant`) to verify signed authorization against frozen partitions, Development role and expiration; denies all Validation/OOS periods.
 - Owner SQLite (stdlib, local `synchronous=FULL`) begins `BEGIN IMMEDIATE`, reserves unique `(grant_id, partition_sha)` and `attempt_id`, and **commits PENDING before any cloud upload**. A crash never automatically refunds an attempt.
 - Publisher uses only Drive **files.create** (not update/delete/copy) with explicit pinned private events-folder ID and one unique JSON name. Before creation, it checks for duplicates; after, it checks exact parent, name, MIME, length, SHA-256 bytes and unique matching filename with Drive API readback. Drive supports same-name duplicates; these checks require an independent single trusted writer and are not a distributed lock.
 - After verified Drive readback, owner SQLite transaction changes `PENDING` -> `ACKED`. Only then owner signs a separate `OWNER_READ_ACK` blob with an offline Ed25519 key. That **signature is not uploaded to Drive**; it is handed to the trusted source broker out-of-band.
