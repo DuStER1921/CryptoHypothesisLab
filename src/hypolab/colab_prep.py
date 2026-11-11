@@ -101,7 +101,9 @@ class MountedFrozenSource:
 
 def _log_start_once(events:Path,month:str,attempt_id:str,frozen:FrozenIndex,
                     c1:PinnedPartition,c2:PinnedPartition,assumed_latency_ms:int,
-                    producer_code_commit:str):
+                    producer_code_commit:str,purpose:str|None=None):
+    if purpose is not None and purpose!='MICRO_5S_15S_60S_V2':
+        raise PrepError('unsupported owner event purpose')
     if type(attempt_id) is not str or re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{5,39}',attempt_id) is None:
         raise PrepError('attempt ID must be 6..40 ASCII characters')
     if type(assumed_latency_ms) is not int or not 1<=assumed_latency_ms<=600000:
@@ -117,6 +119,8 @@ def _log_start_once(events:Path,month:str,attempt_id:str,frozen:FrozenIndex,
            'assumed_latency_ms':assumed_latency_ms,
            'producer_code_commit':producer_code_commit,
            'started_at_utc':datetime.now(timezone.utc).isoformat(timespec='seconds')}
+    if purpose is not None:
+        event['purpose']=purpose
     raw=json.dumps(event,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()
     name=f'COLAB_PREP_STARTED_{month}_{attempt_id}.json'
     path=events/name
