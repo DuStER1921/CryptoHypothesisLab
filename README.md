@@ -40,12 +40,12 @@ The project now includes a separately reviewed `FrozenIndex` (eight-file freeze 
 See [`docs/PHASE2_DATA_ADMISSION.md`](docs/PHASE2_DATA_ADMISSION.md) for safety gates and remaining work. No original private files or observed market rows were committed.
 
 
-## Phase 3 private receipts (code/tests, NOT market-data permission)
+## Phase 4: one-Gmail operator airlock
 
-This release adds an independent owner-side SQLite `PENDING -> ACKED` exposure journal, Ed25519-signed `OWNER_READ_ACK` verification, a bounded create-only Google Drive JSON uploader with exact metadata/content readback, and role-isolation preflight. Tests are synthetic; no credentials, real Drive folder IDs or market rows are committed. The original `GovernedRealReader` continues to **deny every real read**.
+`OwnerOneUseBroker` consumes a previously signed and cloud-verified `READ_STARTED` ACK **once in owner SQLite before opening a read-only source stream**. `TokenScopeDeclaration` and analyst-environment preflight support a **single Gmail using two separate tokens**; they do not pretend to revoke Gmail owner's access to Validation/OOS. The real-source gateway remains default-deny and no live market rows are read by CI. See [`docs/PHASE4_ONE_GMAIL.md`](docs/PHASE4_ONE_GMAIL.md) for the exact owner setup and remaining NO_GO gates.
 
-A live connector smoke test stored only a **synthetic** JSON in the private results folder; this does not prove the actual output uploader's separate OAuth identity. Three real-world gates remain: set up independently scoped Google identities and effective ACL verification, prove owner SQLite durability/key custody and Drive ACK behavior on intended hosts, then integrate a one-use trusted broker with *lazy* source opening. No real C1/C2/C3 market rows may be opened yet. See [Phase 3 security protocol](docs/PHASE3_PRIVATE_RECEIPTS.md).
+## Two-notebook Colab airgap (manual owner pilot)
 
-## Phase 4: one-Gmail owner airlock
+For a single Gmail without creating a Google Cloud OAuth client, use **[01 — Prepare Development](colab/01_prepare_development.ipynb)**, download the bounded SHA-verified feature ZIP, fully delete that runtime, and then open **[02 — Explore offline](colab/02_discover_offline.ipynb)** and upload the ZIP from your computer. The offline analyst does not mount Google Drive. Public notebooks are code-only with empty outputs; real frozen IDs, raw data and private reports are never in GitHub.
 
-`OwnerOneUseBroker` consumes a signed/cloud-verified `READ_STARTED` **once in local owner SQLite before opening a read-only source stream**. `GoogleDrivePinnedSource` reads only owner-pinned IDs in bounded chunks and `ReadOnlyStager` verifies SHA-256. The same Gmail may be used for two **separate OAuth tokens**, while the analyst receives neither. The Gmail account itself retains access to protected data; this is process isolation, not a Google ACL barrier. `GovernedRealReader` remains default-deny, and CI is synthetic-only. [Phase 4 procedure and remaining NO_GO checks](docs/PHASE4_ONE_GMAIL.md).
+**Read [Colab Airgap V1](docs/COLAB_AIRGAP_V1.md) before a real run.** It documents strict 2020–2024 bounds, private start evidence, scope of manual owner approval, the weaker Drive FUSE durability properties vs. the signed Phase 4 broker, and separate-VM constraints. No real source bytes are opened in CI or by this setup alone; the user must explicitly approve a selected Development pilot.
