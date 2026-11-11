@@ -1,0 +1,33 @@
+# Trading Candidate V1 — a falsifiable, fixed experiment
+
+**No profitable strategy has been established by the July V2/V3/V3.1 reports.** They are descriptive outcomes on a repeatedly inspected Development month, largely reflecting the rate of *any* future 15bps/300s price move rather than trade P&L, bid/ask execution, or actual early onset. This document deliberately contains no private market results.
+
+## Hypothesis and reason
+
+V3.1 suggested a large proportion of *retrospectively chosen* reference episodes had a preceding 8–20bps movement state. This is **not an unconditional probability** or evidence of profit. We therefore predeclare and **try to falsify** a specific continuation idea: a fresh 5-second imbalance+volume acceleration in an emerging 60s price range, aligned with the last *completed and available* C1 1m candle, may predict enough additional movement to overcome conservative, explicitly **assumed** taker transaction costs. The opposite-side trade on the same entries tests whether this proposed direction contains useful information.
+
+We do **NOT** turn prior C2 surge negatives into positive profit claims, retune thresholds from July, pick a best combination among many variants, or use August to choose and then report a different winning strategy. This is exactly **one primary strategy** and one same-entry opposite-side falsification control.
+
+## Frozen signal, entry and exit
+
+- Source: owner-local, separately approved private `HYPOLAB_MICRO_DEV_YYYY-MM_*.zip`. Fully verify SHA256 and validated packet contents. No direct original CryptoResearchLab reads, Drive mount, OAuth, source edits, live order calls, protected splits, or private artifacts in public GitHub.
+- At the end of an **observed, completed** 5s C2 trade bucket, its last 12 consecutive 5s observed trade-high/low envelope must have ranged **8–20 bps** (inclusive). A missing bin fails closed, not backfilled. Current bucket must have absolute C2 taker imbalance ≥0.65; notional ≥2.0× mean of 12 previous bins, aggregate count ≥1.5× mean; same-side imbalance acceleration ≥0.1; and first-to-last 5s executed price move ≥1bp in the same direction. The previous fully closed and already available C1 1m candle must have the same directional sign. No calendar or future label enters the predicate.
+- **Entry**: price proxy = last executed trade of the **second later 5s bucket**, with assumed 1.5-second data availability embedded in packet. Do not treat this as a fill guarantee. Exit checks start only in the following bucket. Only one model position can be active, with 300s cooldown after its exit.
+- **Exit**: first high/low touch of +36bps target or −18bps stop; if both touched during the same 5s bar, assume STOP first. For adverse opening-price gaps, use the **worse** of stop price and that 5s first trade. Otherwise close at 15 minutes using the observed last-trade price. Reject cross-UTC-day or any missing-bin future path as UNKNOWN; never fabricate profits or trade fills.
+- **Net model P&L, in bps of unit notional**, is signed exit/entry price return minus **4 bps fee per side** and **2 bps assumed adverse slippage/spread per side** (a **12 bps round-trip** model deduction). These are fixed stress assumptions, **not claims about live Binance fees or execution**. Recalculate identical trade returns at **4bps and 6bps per side slippage** (16bps and 20bps total deduction respectively). Live funding, borrow/financing, bid/ask, quote size, latency and market impact are **UNKNOWN**.
+- Same-entry **opposite-side control**: take the opposite side on each selected signal entry and independently apply identical exits/cost assumptions. This is a paired directional diagnostic, **not** an independent implementable reverse strategy under the original entry scheduling.
+
+## Frozen acceptance / rejection
+
+Primary: every completed modeled trade net of 12bps round-trip cost, no omission of losses, timeouts, adverse or dual-touch bars. Report all alert candidates, skipped entries, unknowns, each unit-bps result, and both sides. Fixed minimum **120 completed trades** on at least **15 UTC days**; positive mean net bps; descriptive 1000-resample UTC-day-cluster 95% range **lower bound above zero**; all 16bps and 20bps total-friction stress means positive; mean greater than the opposite-side paired control; positive mean in calendar days ≥22; max **400 unit-bps** peak-to-trough arithmetic drawdown; zero unknown attempts. All gates must hold to return `PASSES_PREDECLARED_MODEL_GATES_NOT_REAL_EXECUTION`; otherwise `FAILS_PREDECLARED_MODEL_GATES`. Day-block bootstrap is *not* an independent significance guarantee. On single month, these exact thresholds are a harsh filter, not a substitute for validation.
+
+**Even a model pass is NOT proof of executable profitability** without observed executable quotes, fills, data latency, actual fees, spreads/slippage/funding, capacity and genuinely independent later periods. Negative result means **reject this frozen strategy**; do not quietly optimize its constants on August.
+
+## Operations and integrity
+
+1. Run [Colab 08 offline](../colab/08_trade_candidate_offline.ipynb) in a clean session with already owner-approved, private July 2024 MICRO ZIP. Verify exact SHA256 before any packet read; save complete fixed canonical plan and its `freeze_token_sha256` **before** label evaluation; download full unfiltered report locally. This is **already inspected Development**, for data-pipeline/strategy sanity only, not independent evidence.
+2. After examining July (no parameters may change), user may explicitly approve the new August 2024 Development source read in **separate** Colab 04. Its own exact `AUTHORIZE_MICRO_DEVELOPMENT_2024-08` confirmation must be given by owner; no automatic reads. Preserve the month-private ZIP and compute its own SHA256.
+3. In fresh, separate **no-Drive** Colab 08, upload August MICRO ZIP and paste the **same saved July Strategy V1 freeze token**. Token binds the strategy, parser and upstream as-of logic, and notebook. Any code drift fails closed. Save August plan before trial labels, run exactly once and retain all outcomes. August is Development, not protected 2025 Validation or 2026 Final OOS.
+4. If August tests fail, accept failure. If pass, results remain *modeled* and non-independent of the broader iterative research process. A separately approved, independently held-out validation and actual execution-data work would still be required, not claimed or authorized here.
+
+Protected C3 L2, Validation/OOS, source mutations, leverage/portfolio sizing and profitable alpha claims are explicitly outside this PR.
