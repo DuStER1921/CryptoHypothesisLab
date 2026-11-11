@@ -1,3 +1,4 @@
+import os
 import hashlib
 import json
 import tempfile
@@ -28,6 +29,7 @@ def make_fixture(root, *, scope='SYNTHETIC_ONLY', role=Role.DEVELOPMENT):
     return DataGateway(source, (p,), ValidationGate(ledger)), source, ledger, p, payload
 
 
+@unittest.skipUnless(os.name == 'posix', 'local POSIX journal only')
 class TestGateway(unittest.TestCase):
     def test_verified_fixture_read_only_source_unchanged(self):
         with tempfile.TemporaryDirectory() as d:

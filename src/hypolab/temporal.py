@@ -40,8 +40,9 @@ class TimeGuard:
                       evaluation_end: datetime, embargo: timedelta = timedelta(0)) -> dict[str, tuple[int, ...]]:
         require_utc(evaluation_start)
         require_utc(evaluation_end)
-        if not evaluation_start < evaluation_end or embargo < timedelta(0):
-            raise TemporalError('invalid evaluation range/embargo')
+        if (not evaluation_start < evaluation_end or embargo < timedelta(0) or
+                not SPLITS[Role.DEVELOPMENT].contains(evaluation_start, evaluation_end)):
+            raise TemporalError('evaluation must stay inside Development bank')
         training, purged, evaluation, future = [], [], [], []
         for i, o in enumerate(observations):
             TimeGuard.check(o, Role.DEVELOPMENT)

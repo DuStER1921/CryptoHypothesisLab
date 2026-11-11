@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from datetime import timedelta
@@ -14,6 +15,7 @@ def synthetic_bars(n=80, start='2024-07-01T00:00:00Z'):
                       2.0 if i % 3 == 0 else 5.0) for i in range(n)]
 
 
+@unittest.skipUnless(os.name == 'posix', 'local POSIX journal only')
 class TestDiscovery(unittest.TestCase):
     def test_trials_and_losers_recorded(self):
         with tempfile.TemporaryDirectory() as d:

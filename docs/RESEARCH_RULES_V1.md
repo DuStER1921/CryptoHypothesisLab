@@ -26,12 +26,21 @@ Only the separate private output location may receive research artifacts. The pu
 
 ## Search and evidence rules
 
-- Register the complete batch/spec/horizon grid **before** calculating its results.
-- Save every attempted variant, failures and insufficient samples; no cherry-picked "best only" evidence.
+- Register the complete batch/spec/horizon grid and **each exact trial ID** before calculating its results.
+- Save every attempted variant, failures and insufficient samples; no cherry-picked "best only" evidence. Missing result entries mean a batch is incomplete, never successful.
 - Account for correlated labels, effective sample size, regime changes, multiple tests and selection effects before calling anything an edge.
 - Keep Validation sealed until a frozen batch + independently durable read-start grant; keep Final OOS sealed until independent approval and one-time read-start. Reusing an exposed holdout is NOT independent validation.
 - Avoid raw sample rows or numeric research results in public CI/commits/logs; outputs remain private.
 - Future real evaluation needs a trusted owner-controlled grant and independent durable ledger anchor. The local POSIX hash-chain is not tamper-proof: deleting the end can be detected only if its head is anchored elsewhere. It must never be treated as a cloud/FUSE durable grant authority.
+
+## Hardening status (local synthetic only)
+
+- The synthetic journal uses local POSIX advisory exclusive/shared `flock`, immutable create-only SHA-chained records and an explicit incomplete-transaction marker. Bulk result writes are bounded; every proposed trial ID must be registered in advance. A crash leaves a fail-closed ledger pending owner inspection, never auto-approval.
+- The synthetic gateway reads via file descriptors (`O_NOFOLLOW`, `fstat`, bounded content digest), rejects path traversal, symlinks and special files, and does not write into its input tree. All real reads remain default-deny.
+- Discovery computes each horizon's candidate outcomes once then reuses sorted threshold tables across variations; this is **descriptive**, not inferential or trade execution.
+- The public repository is scanned for obvious market data and credentials before CI tests. This does not prevent a bad push; manual staged-diff inspection is still mandatory.
+
+See [`SECURITY_REVIEW_V1.md`](SECURITY_REVIEW_V1.md) for evidence and limitations.
 
 ## Not yet implemented
 

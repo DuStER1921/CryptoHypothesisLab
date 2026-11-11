@@ -14,7 +14,7 @@ class TestLedger(unittest.TestCase):
             ledger.initialize()
             head = ledger.append('READ_DENIED', {'partition_id':'p1', 'role':'FINAL_OOS', 'reason':'PROTECTED_SEALED'})
             self.assertEqual(ledger.replay(expected_head=head)[0], head)
-            entry = next(p for p in ledger.root.iterdir() if p.name != 'genesis.json')
+            entry = next(p for p in ledger.root.iterdir() if p.name.endswith('.json') and p.name != 'genesis.json')
             entry.write_text('broken')
             with self.assertRaises(LedgerError):
                 ledger.replay()
@@ -24,7 +24,7 @@ class TestLedger(unittest.TestCase):
             ledger = ExperimentLedger(Path(d)/'led')
             ledger.initialize()
             head = ledger.append('READ_DENIED', {'partition_id':'p1', 'role':'VALIDATION', 'reason':'PROTECTED_SEALED'})
-            entry = next(p for p in ledger.root.iterdir() if p.name != 'genesis.json')
+            entry = next(p for p in ledger.root.iterdir() if p.name.endswith('.json') and p.name != 'genesis.json')
             entry.unlink()
             # Unanchored chain can't detect suffix deletion; independently pinned head does.
             self.assertEqual(len(ledger.replay()[1]), 0)
@@ -51,7 +51,7 @@ class TestLedger(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             ledger = ExperimentLedger(Path(d)/'led')
             ledger.initialize()
-            one = {'batch_id': 'b1', 'trials': 1, 'definition_sha': 'a'*64}
+            one = {'batch_id': 'b1', 'trials': 1, 'trial_ids': ['trial'], 'definition_sha': 'a'*64}
             ledger.append('BATCH_REGISTERED', one)
             with self.assertRaises(LedgerError):
                 ledger.append('BATCH_REGISTERED', one)

@@ -1,7 +1,9 @@
 # Public repository safety
 
-This repository is intentionally public and contains **only source code, synthetic tests and non-sensitive documentation**.
+This repository intentionally publishes only code, synthetic tests and general documentation. **Never publish** raw/derived market rows, private research findings, any Google Drive folder ID/path, access token, credentials, original warehouse manifest, production journal or research grant.
 
-Do not commit tokens, Drive folder IDs or paths, source manifests, raw or derived market data, research findings, notebook credentials or production ledger records. `.gitignore` is a convenience, not a security barrier: review the staged diff and run a secret scanner before pushing. Use separate, least-privilege identities for future source reads and private output writes.
+Run `python scripts/audit_public_tree.py` and inspect the staged diff before pushing. The built-in audit checks obvious file types and secret patterns, but it is not a complete secret scanner. `.gitignore` is not a security boundary; previously tracked files remain public in history. Keep GitHub Actions free of Drive secrets and read-only (`permissions: contents: read`).
 
-No real market data is authorized in this V1. CI has no secrets and MUST remain synthetic-only. For a suspected leak, revoke affected credentials immediately and review Git history, Actions logs and caches.
+Do not give this public CI runner access to the canonical data store. Future market-data readers must use a separate least-privilege read-only identity; private research outputs use another isolated writer. No real market data or protected role is authorized in V1.
+
+If an exposure occurs, revoke affected credentials, investigate Git history, Actions logs and caches and consider the data permanently disclosed.

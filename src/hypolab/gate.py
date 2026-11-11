@@ -26,6 +26,8 @@ class ValidationGate:
 
     def before_read(self, request: ReadRequest) -> str:
         """Record denial/start before source is touched; no production approval mechanism."""
+        if not isinstance(request.role, Role):
+            raise AccessDenied('UNKNOWN_ROLE')
         reason = None
         if request.scope != 'SYNTHETIC_ONLY':
             reason = 'REAL_NOT_AUTHORIZED'

@@ -1,21 +1,34 @@
 # CryptoHypothesisLab
 
-Public **code-only**, synthetic-first research safety prototype for causal event studies. We do **not** copy raw market data, source warehouse code, credentials or results into this repository.
+Public code-only, synthetic-first research foundation for **causal event discovery**, not trading strategies.
 
-## Components
+**Current authorization: SYNTHETIC ONLY.** No real C1/C2/C3 market rows or original warehouse bytes are accessible from this project. The canonical source remains external and untouched; there is no source data submodule or source Drive credential in this repository.
 
-- `DataGateway` — pinned manifest + hash verification for bounded synthetic fixtures; real market reader deliberately **not authorized**.
-- `TimeGuard` — UTC bank boundaries, feature availability, future-label separation and chronological purge.
-- `DiscoveryEngine` — registers a complete synthetic event/horizon grid and returns descriptive conditional forward outcomes, **not** trading performance.
-- `ExperimentLedger` — local POSIX create-only, SHA-linked events, readback; independently anchored durable production authority not yet built.
-- `ValidationGate` — development-only synthetic fixture read policy. Validation and Final OOS cannot be opened in V1.
+## Five components
 
-## Run local unit tests (no network, no market data, no credentials)
+| Module | Responsibility | V1 boundary |
+| --- | --- | --- |
+| `gateway.py` / `DataGateway` | Byte-verified synthetic fixture loading, immutable allowlist, descriptor-anchored read | REAL data denied |
+| `temporal.py` / `TimeGuard` | Completed feature availability, decisions, future labels, chronological purge | Cross-bank labels denied |
+| `discovery.py` / `DiscoveryEngine` | Batch-preregistered imbalance event studies with sorted-threshold reuse | Synthetic descriptive results, not p-values |
+| `ledger.py` / `ExperimentLedger` | Local POSIX SHA chain, exact trial IDs, exclusive cooperative writer and crash sentinel | Not a trusted Drive/FUSE grant ledger |
+| `gate.py` / `ValidationGate` | Synthetic Development-only reads with read-start event | Validation / OOS sealed; all REAL reads denied |
 
-```bash
+## Research banks (UTC, end exclusive)
+
+- Discovery: 2020-01-01 to 2025-01-01 (1,827 days)
+- Validation: 2025-01-01 to 2026-01-01 (365 days, sealed)
+- Final OOS: 2026-01-01 to 2026-09-01 (243 days, sealed)
+
+## Tests
+
+On Linux/macOS with Python 3.11+ (the local journal requires POSIX directory `fsync` and `flock`):
+
+```sh
 PYTHONPATH=src python -m unittest discover -s tests -v
+python scripts/audit_public_tree.py
 ```
 
-The source project and its datasets remain **unchanged**. See [`docs/RESEARCH_RULES_V1.md`](docs/RESEARCH_RULES_V1.md) for selected time banks, causal invariants, explicit limitations and admission checklist.
+GitHub Actions runs the tests on Python 3.11 and 3.13, with no credentials and no market data. Windows imports the package but skips local POSIX journal tests; that is not a Windows acceptance result.
 
-CI executes only synthetic unit tests and does not authenticate to Google Drive. Do not publish private research outputs or any external canonical warehouse assets in commits, issues, PR descriptions or workflow logs.
+Read the [Research Rules](docs/RESEARCH_RULES_V1.md) and the [Security Review](docs/SECURITY_REVIEW_V1.md) before extending this repository. **Do not merge in production access**, run research against real frozen data, or present synthetic results as market edge until the missing independent grants, data-integrity adapter, durable journal and statistical inference have been accepted.
