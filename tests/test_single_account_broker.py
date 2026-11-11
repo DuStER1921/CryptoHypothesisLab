@@ -84,9 +84,12 @@ class TestOwnerOneUseBroker(unittest.TestCase):
         parquet=b'synthetic-only-not-real-parquet'
         p= PinnedPartition('klines','2024-12','binance-usdm-BTCUSDT-klines-1m',
                            'a'*64,sha(parquet),'0'*64,'b'*64)
-        manifest_object={'datatype':'klines','symbol':'BTCUSDT','market':'usdm',
+        manifest_object={'manifest_version':1,'provider':'binance','datatype':'klines',
+            'symbol':'BTCUSDT','market':'usdm','logical_dataset_id':p.logical_dataset_id,
+            'canonical_name':'data.parquet','interval':'1m',
+            'schema_version':'binance-usdm-klines-1m-v1',
             'canonical_sha256':p.canonical_sha256,'source_sha256':p.source_sha256,
-            'generation':p.generation,'year':2024,'month':12,'row_count':1,
+            'year':2024,'month':12,'row_count':1,
             'validation':{x:'pass' for x in ('checksum','schema','temporal','structural','read_back')}}
         manifest=json.dumps(manifest_object,sort_keys=True).encode('utf-8')
         p=PinnedPartition(p.family,p.period,p.logical_dataset_id,p.generation,

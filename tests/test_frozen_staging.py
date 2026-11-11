@@ -99,11 +99,18 @@ def synthetic_frozen(root):
 
 
 def synthetic_pair(identity, raw=b'fake parquet for read-stream checks'):
-    m={'datatype':identity.family,'symbol':'BTCUSDT','market':'usdm',
-       'generation':identity.generation,'canonical_sha256':sha(raw),
-       'source_sha256':identity.source_sha256,'year':2024,'month':12,
-       'row_count':1,'validation':{'checksum':'pass','schema':'pass','temporal':'pass',
+    m={'manifest_version':1 if identity.family=='klines' else 3,
+       'provider':'binance','datatype':identity.family,'symbol':'BTCUSDT','market':'usdm',
+       'logical_dataset_id':identity.logical_dataset_id,'canonical_name':'data.parquet',
+       'canonical_sha256':sha(raw),'source_sha256':identity.source_sha256,
+       'year':2024,'month':12,'row_count':1,
+       'validation':{'checksum':'pass','schema':'pass','temporal':'pass',
          'structural':'pass','read_back':'pass'}}
+    if identity.family=='klines':
+        m['interval']='1m'
+        m['schema_version']='binance-usdm-klines-1m-v1'
+    else:
+        m['generation']=identity.generation
     if identity.family=='bookDepth':m['day']=31
     m_raw=canonical(m)
     p=PinnedPartition(identity.family,identity.period,identity.logical_dataset_id,
@@ -149,6 +156,56 @@ class StageTest(unittest.TestCase):
             self.assertEqual(stage.parquet_path.read_bytes(),parquet)
             self.assertEqual(before,{x.name:sha(x.read_bytes()) for x in source.glob('*') if x.is_file()})
             self.assertEqual(stage.local_dir.stat().st_mode&0o077,0)
+
+    def test_real_c1_v1_contract_has_no_generation_but_keeps_full_sha_binding(self):
+        with tempfile.TemporaryDirectory() as d:
+            stager,_,identity,manifest,parquet=self.fixture(d)
+            parsed=json.loads(manifest)
+            self.assertEqual(parsed['manifest_version'],1)
+            self.assertNotIn('generation',parsed)
+            stage=stager.stage(identity,manifest_stream=io.BytesIO(manifest),
+                               parquet_stream=io.BytesIO(parquet))
+            self.assertTrue(stage.source_verified)
+
+    def test_c1_v1_generation_not_silently_fabricated_or_missing_version_accepted(self):
+        with tempfile.TemporaryDirectory() as d:
+            stager,_,identity,manifest,parquet=self.fixture(d)
+            for change in ({'generation':identity.generation},
+                           {'manifest_version':None},
+                           {'logical_dataset_id':'different'},
+                           {'schema_version':'unknown'},
+                           {'provider':'different'}):
+                with self.subTest(change=change):
+                    fake={**json.loads(manifest),**change}
+                    raw=canonical(fake)
+                    # Even if a malicious caller re-pins this synthetic hash,
+                    # the structure contract must fail closed.
+                    other=PinnedPartition(identity.family,identity.period,
+                                          identity.logical_dataset_id,identity.generation,
+                                          identity.canonical_sha256,sha(raw),identity.source_sha256)
+                    with self.assertRaises(StageError):
+                        stager.stage(other,manifest_stream=io.BytesIO(raw),
+                                     parquet_stream=io.BytesIO(parquet))
+            self.assertEqual(list(stager.cache_parent.iterdir()),[])
+
+    def test_c2_v3_generation_still_required(self):
+        with tempfile.TemporaryDirectory() as d:
+            stager,_,ident,_,parquet=self.fixture(d)
+            c2=PinnedPartition('aggTrades',ident.period,
+                               'binance-usdm-BTCUSDT-aggTrades',ident.generation,
+                               ident.canonical_sha256,ident.manifest_sha256,ident.source_sha256)
+            c2,m,parquet=synthetic_pair(c2,parquet)
+            good=stager.stage(c2,manifest_stream=io.BytesIO(m),
+                              parquet_stream=io.BytesIO(parquet))
+            self.assertTrue(good.source_verified)
+            for change in ({'generation':None},{'generation':'f'*64}):
+                bad={**json.loads(m),**change}
+                raw=canonical(bad)
+                modified=PinnedPartition(c2.family,c2.period,c2.logical_dataset_id,
+                                         c2.generation,c2.canonical_sha256,sha(raw),c2.source_sha256)
+                with self.subTest(change=change),self.assertRaises(StageError):
+                    stager.stage(modified,manifest_stream=io.BytesIO(raw),
+                                 parquet_stream=io.BytesIO(parquet))
 
     def test_tampered_source_rejected_and_temp_cleaned(self):
         with tempfile.TemporaryDirectory() as d:
