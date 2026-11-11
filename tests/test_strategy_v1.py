@@ -39,6 +39,7 @@ class StrategyV1Tests(unittest.TestCase):
         self.assertEqual(p['execution_proxy']['stop_bps'],18.)
         self.assertEqual(p['execution_proxy']['entry_lag_complete_5s_bars'],2)
         self.assertEqual(p['cost_assumptions']['base_slippage_bps_per_side'],2.)
+        self.assertEqual(p['cost_assumptions']['fee_bps_per_side'],5.)
         self.assertEqual(len(json.loads(s.protocol_bytes())['signal']),8)
 
     def test_actual_string_csv_fields_generate_causal_emergence(self):
@@ -74,7 +75,7 @@ class StrategyV1Tests(unittest.TestCase):
         self.assertEqual(t['reason'],'DUAL_TOUCH_STOP_FIRST')
         self.assertEqual(ix,i+3)
         self.assertAlmostEqual(t['gross_bps'],-18.,places=3)
-        self.assertAlmostEqual(t['net_bps'],-30.,places=3)
+        self.assertAlmostEqual(t['net_bps'],-32.,places=3)
         both['first_trade_price']='99.50'
         t,_=s._simulate_trade(rows,i,1,2.)
         self.assertAlmostEqual(t['gross_bps'],-50.,places=3)
@@ -89,11 +90,11 @@ class StrategyV1Tests(unittest.TestCase):
         t,_=s._simulate_trade(rows,i,1,2.)
         self.assertEqual(t['reason'],'TARGET')
         self.assertAlmostEqual(t['gross_bps'],36.,places=3)
-        self.assertAlmostEqual(t['net_bps'],24.,places=3)
+        self.assertAlmostEqual(t['net_bps'],22.,places=3)
         rows[i+3].update({'max_trade_price':'100.0','min_trade_price':'100.0'})
         t,_=s._simulate_trade(rows,i,1,2.)
         self.assertEqual(t['reason'],'TIME_EXIT')
-        self.assertAlmostEqual(t['net_bps'],-12.,places=3)
+        self.assertAlmostEqual(t['net_bps'],-14.,places=3)
 
     def test_out_of_scope_source_denied_before_analysis(self):
         m={'month':'2025-01'}
