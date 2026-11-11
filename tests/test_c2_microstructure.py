@@ -28,6 +28,12 @@ class MicroBucketsTests(unittest.TestCase):
         self.assertAlmostEqual(five[0]['taker_delta_base'],1.)
         self.assertEqual(five[0]['longest_same_taker_side_agg_rows'],1)
         self.assertEqual(five[0]['book_depth'],None)
+        self.assertAlmostEqual(five[0]['max_agg_trade_notional_quote'],200.)
+        self.assertAlmostEqual(five[0]['max_buy_agg_trade_notional_quote'],200.)
+        self.assertAlmostEqual(five[0]['max_sell_agg_trade_notional_quote'],101.)
+        self.assertEqual(five[0]['first_taker_side'],1)
+        self.assertEqual(five[0]['last_taker_side'],-1)
+        self.assertEqual(five[0]['max_interarrival_ms'],2000)
         self.assertEqual(five[0]['status'],'C2_OBSERVED_TRADES_ONLY')
         self.assertNotIn('bid_ask_spread',five[0])
 

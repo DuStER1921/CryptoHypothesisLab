@@ -50,6 +50,12 @@ def _snapshot(b, seconds):
         'taker_delta_base': buy - sell,
         'taker_imbalance': (buy - sell) / total,
         'executed_quote_notional': b['executed_quote_notional'],
+        'max_agg_trade_notional_quote': b['max_agg_trade_notional_quote'],
+        'max_buy_agg_trade_notional_quote': b['max_buy_agg_trade_notional_quote'],
+        'max_sell_agg_trade_notional_quote': b['max_sell_agg_trade_notional_quote'],
+        'max_interarrival_ms': b['max_interarrival_ms'],
+        'first_taker_side': b['first_taker_side'],
+        'last_taker_side': b['last_side'],
         'first_trade_price': b['first_trade_price'],
         'last_trade_price': b['last_trade_price'],
         'min_trade_price': b['min_trade_price'],
@@ -114,14 +120,27 @@ def rollup_aggtrades(trades, *, period_start: datetime, period_end: datetime,
                      'executed_quote_notional':0.,
                      'first_trade_price':float(px),'last_trade_price':float(px),
                      'min_trade_price':float(px),'max_trade_price':float(px),
-                     'last_side':side,'side_run':0,'longest_same_taker_side_agg_rows':0}
+                     'last_side':side,'first_taker_side':side,'side_run':0,
+                     'longest_same_taker_side_agg_rows':0,
+                     'max_agg_trade_notional_quote':0.,
+                     'max_buy_agg_trade_notional_quote':0.,
+                     'max_sell_agg_trade_notional_quote':0.,
+                     'max_interarrival_ms':0}
+            if b['aggregate_rows']:
+                b['max_interarrival_ms'] = max(b['max_interarrival_ms'],stamp-b['last_transact_ms'])
             b['aggregate_rows'] += 1
             b['last_transact_ms'] = stamp
             b['last_agg_trade_id'] = idx
             b['last_trade_price'] = float(px)
             b['min_trade_price'] = min(b['min_trade_price'],px)
             b['max_trade_price'] = max(b['max_trade_price'],px)
-            b['executed_quote_notional'] += px * qty
+            quote = px * qty
+            if not math.isfinite(quote) or quote <= 0:
+                raise MicrostructureError('non-finite trade notional')
+            b['executed_quote_notional'] += quote
+            b['max_agg_trade_notional_quote'] = max(b['max_agg_trade_notional_quote'],quote)
+            key = 'max_buy_agg_trade_notional_quote' if side > 0 else 'max_sell_agg_trade_notional_quote'
+            b[key] = max(b[key],quote)
             b['taker_buy_base' if side > 0 else 'taker_sell_base'] += qty
             b['side_run'] = b['side_run'] + 1 if b['last_side']==side else 1
             b['last_side'] = side
