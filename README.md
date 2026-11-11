@@ -38,3 +38,10 @@ Read the [Research Rules](docs/RESEARCH_RULES_V1.md) and the [Security Review](d
 The project now includes a separately reviewed `FrozenIndex` (eight-file freeze proof), streamed read-only private staging, exact-schema bounded Parquet window loader, signed Development grant verifier, C1+C2 minute feature builder and private create-only local result writer. **None of these objects alone authorize real data reads.** `GovernedRealReader` always denies until independently anchored, durable owner-controlled read-start authority and isolated credentials are implemented and accepted. Validation and OOS stay sealed.
 
 See [`docs/PHASE2_DATA_ADMISSION.md`](docs/PHASE2_DATA_ADMISSION.md) for safety gates and remaining work. No original private files or observed market rows were committed.
+
+
+## Phase 3 private receipts (code/tests, NOT market-data permission)
+
+This release adds an independent owner-side SQLite `PENDING -> ACKED` exposure journal, Ed25519-signed `OWNER_READ_ACK` verification, a bounded create-only Google Drive JSON uploader with exact metadata/content readback, and role-isolation preflight. Tests are synthetic; no credentials, real Drive folder IDs or market rows are committed. The original `GovernedRealReader` continues to **deny every real read**.
+
+A live connector smoke test stored only a **synthetic** JSON in the private results folder; this does not prove the actual output uploader's separate OAuth identity. Three real-world gates remain: set up independently scoped Google identities and effective ACL verification, prove owner SQLite durability/key custody and Drive ACK behavior on intended hosts, then integrate a one-use trusted broker with *lazy* source opening. No real C1/C2/C3 market rows may be opened yet. See [Phase 3 security protocol](docs/PHASE3_PRIVATE_RECEIPTS.md).
