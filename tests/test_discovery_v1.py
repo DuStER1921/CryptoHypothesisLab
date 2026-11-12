@@ -77,7 +77,7 @@ class DiscoveryV1Tests(unittest.TestCase):
         self.assertTrue(np.isnan(d._forward_returns(crossing,np.array([near_end]),np.array([0]),300)[0]))
 
     def test_train_only_terciles_and_immutable_membership(self):
-        times=np.repeat(np.arange(31,dtype=np.int64)*d.DAY_MS,10)+np.tile(np.arange(10,dtype=np.int64)*d.MINUTE_MS,31)
+        times=d.JULY_START_MS+np.repeat(np.arange(31,dtype=np.int64)*d.DAY_MS,10)+np.tile(np.arange(10,dtype=np.int64)*d.MINUTE_MS,31)
         vals=np.zeros((310,12))
         vals[:,0]=np.repeat(np.arange(31),10)
         cut=d._thresholds(times,vals)
@@ -87,6 +87,17 @@ class DiscoveryV1Tests(unittest.TestCase):
         self.assertTrue(np.all(d._bins(vals,cut)[:,1]==-1))
         self.assertEqual(d._bins(vals,cut)[0,0],0)
         self.assertEqual(d._bins(vals,cut)[200,0],2)
+
+    def test_missing_first_july_day_never_shifts_train_boundary(self):
+        # July 1 is missing. July 22 must still remain OUTSIDE the July 1-21 fit.
+        days=np.repeat(np.arange(1,31),10)
+        times=d.JULY_START_MS+days*d.DAY_MS+np.tile(np.arange(10),30)*d.MINUTE_MS
+        vals=np.zeros((len(times),12));vals[:,0]=days
+        cuts=d._thresholds(times,vals)
+        expected=np.quantile(np.repeat(np.arange(1,21),10),[1/3,2/3]).tolist()
+        self.assertEqual(cuts[d.FEATURES[0]],expected)
+        vals[days>=21,0]=999999
+        self.assertEqual(d._thresholds(times,vals),cuts)
 
     def test_joint_max_t_correction_and_ineligible(self):
         rng=np.random.default_rng(21)

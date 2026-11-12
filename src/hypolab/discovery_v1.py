@@ -7,6 +7,7 @@ Private MICRO ZIP only; only July exploratory + preselected August Development r
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 import json
@@ -22,6 +23,7 @@ SCHEMA = "HYPOLAB_SYSTEMATIC_DISCOVERY_V1"
 FIVE_MS = 5_000
 MINUTE_MS = 60_000
 DAY_MS = 86_400_000
+JULY_START_MS = int(datetime(2024, 7, 1, tzinfo=timezone.utc).timestamp()*1000)
 JULY = "2024-07"
 AUGUST = "2024-08"
 HORIZONS_S = (300, 900, 1800, 3600)
@@ -149,7 +151,7 @@ def _dataset(c1, rows):
 
 def _thresholds(times,features):
     if len(times)<200 or len(features)!=len(times):raise MicroBundleError('not enough risk-set observations')
-    train = ((times//DAY_MS - times[0]//DAY_MS) < TRAIN_DAYS)
+    train = (times >= JULY_START_MS) & (times < JULY_START_MS + TRAIN_DAYS*DAY_MS)
     if np.sum(train)<100:raise MicroBundleError('not enough train decisions')
     cuts=np.quantile(features[train], BIN_QUANTILES,axis=0)
     # Nonidentical cutoffs mandatory: constant features must not spawn bogus bins.
@@ -316,7 +318,7 @@ def _study_month(zip_path,plan,*,month):
 def run_july_discovery(zip_path:Path,plan:bytes):
     """Fixed family. Only Jul1-21 supplies testing/signs; Jul22-31 diagnostic only."""
     meta,rows,times,positions,bins=_study_month(zip_path,plan,month=JULY)
-    day_of_month=((times//DAY_MS)-(times[0]//DAY_MS))+1
+    day_of_month=((times//DAY_MS)-(JULY_START_MS//DAY_MS))+1
     train=day_of_month<=TRAIN_DAYS
     internal=~train
     candidates=_family()
