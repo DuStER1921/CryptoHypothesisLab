@@ -10,7 +10,7 @@ class ColabNotebookTests(unittest.TestCase):
     def test_notebooks_are_public_safe_and_compile(self):
         for name in ('01_prepare_development.ipynb','02_discover_offline.ipynb','03_premove_offline.ipynb',
                      '04_prepare_micro_development.ipynb','05_micro_warning_offline.ipynb',
-                     '06_premove_v3_offline.ipynb','07_premove_v31_offline.ipynb','08_trade_candidate_offline.ipynb'):
+                     '06_premove_v3_offline.ipynb','07_premove_v31_offline.ipynb','08_trade_candidate_offline.ipynb','09_failed_auction_v2_offline.ipynb'):
             with self.subTest(name=name):
                 p=ROOT/'colab'/name
                 raw=p.read_bytes()
@@ -23,7 +23,7 @@ class ColabNotebookTests(unittest.TestCase):
                         compile(''.join(cell['source']),f'{name}:{i}','exec')
     def test_offline_notebook_never_requests_drive(self):
         for name in ('02_discover_offline.ipynb','03_premove_offline.ipynb',
-                     '05_micro_warning_offline.ipynb','06_premove_v3_offline.ipynb','07_premove_v31_offline.ipynb','08_trade_candidate_offline.ipynb'):
+                     '05_micro_warning_offline.ipynb','06_premove_v3_offline.ipynb','07_premove_v31_offline.ipynb','08_trade_candidate_offline.ipynb','09_failed_auction_v2_offline.ipynb'):
             nb=json.loads((ROOT/'colab'/name).read_text())
             code='\n'.join(''.join(c['source']) for c in nb['cells'] if c['cell_type']=='code')
             self.assertNotIn('drive.mount(',code)
