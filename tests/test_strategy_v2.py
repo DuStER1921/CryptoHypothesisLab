@@ -89,7 +89,8 @@ class PureStrategyTests(unittest.TestCase):
                                           'c2_15s':174,'c2_60s':44}}
         with patch.object(v,'make_strategy_v2_plan',return_value=b'plan'), \
              patch.object(v,'inspect_micro_bundle',return_value=(meta,bars,rows)), \
-             patch.object(v,'freeze_token_sha256',return_value='x'*64):
+             patch.object(v,'freeze_token_sha256',return_value='x'*64), \
+             patch.object(v,'_sha',return_value='z'*64):
             result=v.run_strategy_v2(pathlib.Path('/fake.zip'),b'plan')
         self.assertEqual(result['primary']['trades'],1)
         self.assertEqual(result['opposite_same_case_control']['trades'],1)
